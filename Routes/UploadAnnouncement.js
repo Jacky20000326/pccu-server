@@ -1,15 +1,15 @@
 const Route = require("express").Router()
 const Connection = require("../getMysqlConnection")
 const multer = require("multer")
-// const imgFilePath = require("../../src/images/PathExport")
+const rootPath = require.main.path + '/images'
 
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "./src/images/Announcement_Images");
+        cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        const fileName = new Date() + file.originalname;
+        const fileName = file.originalname;
         cb(null, fileName)
     }
 })
@@ -41,7 +41,7 @@ Route.post('/post/announcement', upload.single('upload'), (req, res) => {
             console.log(err)
         } else {
             if (data.length == 0) {
-                let image = new Date() + req.file.originalname
+                let image =  req.file.originalname
                 let insertAnnouncementToTable = `
     INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name) VALUES ('${category}','${title}','${smellTitle}','${image}','${html}','${poster}')
     `
@@ -113,8 +113,9 @@ Route.get('/get/PerAnnouncement', (req, res) => {
 
 Route.post('/get/search/Announcement', (req, res) => {
     let { id } = req.body
+    console.log(req.body)
     let getAnnouncement = `
-    SELECT * FROM Announcement WHERE A_id = '${id}'
+    SELECT * FROM Announcement WHERE A_id = '1'
     `
     Connection.query(getAnnouncement, (err, data) => {
         if (err) {
