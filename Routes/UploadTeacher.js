@@ -12,7 +12,7 @@ let storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         // 取得當下時間並轉換格式
-        const fileName = moment().format("X") + file.originalname;
+        const fileName = String(file.originalname);
         cb(null, fileName)
     },
 })
@@ -61,7 +61,8 @@ let upload = multer({
 Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
 
     let { job, name, academic, gmail, phone, research, teach } = req.body
-    let imageData = moment().format("X") + req.file.originalname
+    
+    let imageData = String(req.file.originalname) 
     let insertTeacherToTable = `
     INSERT INTO teacher (TR_job,TR_image,TR_name,TR_academic,TR_gmail,TR_phone,TR_research,TR_teach) VALUES (
         '${job}','${imageData}','${name}','${academic}','${gmail}','${phone}','${research}','${teach}'
