@@ -63,11 +63,31 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
     let { job, name, academic, gmail, phone, research, teach } = req.body
     
     let imageData = String(req.file.originalname) 
+
+    // select 出職位為系主任的資料
+
+    let selectMasterData = `
+    SELECT * FROM teacher WHERE TR_job = '系主任'
+    `
+    
     let insertTeacherToTable = `
     INSERT INTO teacher (TR_job,TR_image,TR_name,TR_academic,TR_gmail,TR_phone,TR_research,TR_teach) VALUES (
         '${job}','${imageData}','${name}','${academic}','${gmail}','${phone}','${research}','${teach}'
     )
     `
+
+    // 若有系主任的話則return
+    Connection.query(selectMasterData,(err,data)=>{
+        if(err){
+            console.log(err)
+            return
+        }
+        if(data.length > 0){
+            res.json({ result: "fail", msg: "以上傳過系主任" })
+            return
+        }
+        
+    })
     Connection.query(insertTeacherToTable, (err, data) => {
         if (err) {
             res.json({ result: "fail", msg: "上傳失敗" })
@@ -78,6 +98,22 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
         res.json({ result: "success", msg: "上傳成功" })
     })
 
+})
+
+Route.get('/test',(req,res)=>{
+    
+    let insertTeacherToTable = `
+    SELECT * FROM teacher WHERE TR_job = '系主任'
+    `
+    Connection.query(insertTeacherToTable, (err, data) => {
+        if (err) {
+            res.json({ result: "fail", msg: "上傳失敗" })
+            console.log(err)
+            return
+        }
+        console.log(data)
+        res.json(data)
+    })
 })
 
 
