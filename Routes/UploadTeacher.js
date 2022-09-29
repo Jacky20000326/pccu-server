@@ -3,10 +3,12 @@ const multer = require("multer")
 const Connection = require("../getMysqlConnection")
 const moment = require("moment")
 
+// 根目錄的路徑
+const rootPath = require.main.path + '/images'
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, __dirname)
+        cb(null, rootPath)
     },
     filename: (req, file, cb) => {
         // 取得當下時間並轉換格式
@@ -76,6 +78,7 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
     })
 
 })
+
 
 Route.post("/Search/teacherInfo", (req, res) => {
     let { teacherName } = req.body
@@ -162,4 +165,6 @@ Route.post("/delete/teacherInfo", (req, res) => {
     })
 
 })
+
+
 module.exports = Route
