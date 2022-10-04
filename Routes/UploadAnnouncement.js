@@ -115,7 +115,7 @@ Route.post('/get/search/Announcement', (req, res) => {
     let { id } = req.body
     console.log(req.body)
     let getAnnouncement = `
-    SELECT * FROM Announcement WHERE A_id = '1'
+    SELECT * FROM Announcement WHERE A_id = ${id}
     `
     Connection.query(getAnnouncement, (err, data) => {
         if (err) {

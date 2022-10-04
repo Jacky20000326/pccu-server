@@ -1,12 +1,14 @@
 const Route = require("express").Router()
 const multer = require("multer")
 const Connection = require("../getMysqlConnection")
+const rootPath = require.main.path + '/images'
+
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "./src/images/Topic_Images");
+        cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        const fileName = new Date() + file.originalname;
+        const fileName = file.originalname;
         cb(null, fileName)
     }
 })
@@ -30,7 +32,7 @@ Route.post('/post/topic', upload.array("Image_Path", 6), (req, res) => {
 
 
     let insertTopicToTable = `
-    INSERT INTO topic (TP_title,TP_content,TP_img,TP_fb_link,TP_ig_link,TP_website_link,TP_film_link,TP_students,TP_teachers) VALUES ('${title}','${content}','${new Date() + req.files[0].originalname}','${fb_link}','${ig_link}','${website_link}','${film_Link}','${student}','${teacher}')
+    INSERT INTO topic (TP_title,TP_content,TP_img,TP_fb_link,TP_ig_link,TP_website_link,TP_film_link,TP_students,TP_teachers) VALUES ('${title}','${content}','${req.files[0].originalname}','${fb_link}','${ig_link}','${website_link}','${film_Link}','${student}','${teacher}')
     `
 
     let queryTopic = `
@@ -51,7 +53,7 @@ Route.post('/post/topic', upload.array("Image_Path", 6), (req, res) => {
                 return
             }
             for (var i = 0; i <= req.files.length - 1; i++) {
-                Connection.query(`INSERT INTO topicIMG (TPI_src,TP_id) VALUES ('${new Date() + req.files[i].originalname}','${data[0].TP_id}')`, (err, data) => {
+                Connection.query(`INSERT INTO topicIMG (TPI_src,TP_id) VALUES ('${req.files[i].originalname}','${data[0].TP_id}')`, (err, data) => {
                     if (err) {
                         res.json({ result: "fail", msg: "上傳失敗" })
                         console.log(err)

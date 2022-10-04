@@ -83,7 +83,7 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
             return
         }
         if(data.length > 0){
-            res.json({ result: "fail", msg: "以上傳過系主任" })
+            // res.json({ result: "fail", msg: "以上傳過系主任" })
             return
         }
         
