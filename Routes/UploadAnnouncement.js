@@ -2,15 +2,15 @@ const Route = require("express").Router()
 const Connection = require("../getMysqlConnection")
 const multer = require("multer")
 const rootPath = require.main.path + '/images'
-
+const moment = require("moment")
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        const fileName = file.originalname;
-        cb(null, fileName)
+        const file_Name = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + file.originalname;
+        cb(null, file_Name)
     }
 })
 
@@ -41,7 +41,9 @@ Route.post('/post/announcement', upload.single('upload'), (req, res) => {
             console.log(err)
         } else {
             if (data.length == 0) {
-                let image =  req.file.originalname
+                // Windows OS doesn't accept files with a ":"
+                let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
+                
                 let insertAnnouncementToTable = `
     INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name) VALUES ('${category}','${title}','${smellTitle}','${image}','${html}','${poster}')
     `
@@ -151,10 +153,15 @@ Route.post("/find/Announcement", (req, res) => {
 
 Route.post("/update/Announcement", upload.single('upload'), (req, res) => {
     let { category, title, html, poster, smellTitle } = req.body
-    let image = new Date() + req.file.originalname
+    let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + req.file.originalname
     let findSameAnnouncement = `SELECT * FROM Announcement WHERE A_title = '${title}'`
+    
+    // let UpdateTeacherTable = `
+    // UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${image}",A_smellTitle = "${smellTitle}",A_content ="${html}",M_name="${poster}" WHERE A_title = "${title}"
+    // `
+
     let UpdateTeacherTable = `
-    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${image}",A_smellTitle = "${smellTitle}",A_content ="${html}",M_name="${poster}" WHERE A_title = "${title}"
+    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${image}",A_smellTitle = "${smellTitle}",A_content='${html}',A_createTime = NOW(),M_name="${poster}" WHERE A_title = "${title}"
     `
 
     Connection.query(findSameAnnouncement, (err, data) => {
@@ -171,9 +178,12 @@ Route.post("/update/Announcement", upload.single('upload'), (req, res) => {
                     console.log(err)
                     return
                 }
+                console.log(data)
                 res.json({ result: "success", msg: "公告已更新" })
                 console.log({ result: "success", msg: "公告已更新" })
             })
+    
+            console.log('已更新')
 
         }
     })
