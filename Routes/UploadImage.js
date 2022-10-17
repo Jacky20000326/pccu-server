@@ -4,7 +4,7 @@ const Connection = require("../getMysqlConnection")
 // const imageFilePath = require("../../src/images/PathExport")
 const fs = require("fs")
 const rootPath = require.main.path + '/images'
-
+const moment = require("moment")
 
 // multer config
 
@@ -14,7 +14,7 @@ let storage = multer.diskStorage({
         cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        const fileName = String(file.originalname);
+        const fileName = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + file.originalname;
         cb(null, fileName)
     }
 })
@@ -40,7 +40,7 @@ Route.post("/post/image", upload.single('Image_Path'), (req, res) => {
     let insertImageToTable = `
     INSERT INTO image (I_file) VALUES (?)
     `
-    let data = String(req.file.originalname)
+    let data =  moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
     Connection.query(insertImageToTable, data, (err, data) => {
         if (err) {
             console.log(err)
