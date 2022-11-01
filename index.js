@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require("cors")
 const PORT = process.env.PORT || 3003
+const passport = require("passport")
+const https = require('https');
+const fs = require('fs');
 const UploadImageRoute = require("./Routes/index").UploadImage
 const UploadVideoRoute = require("./Routes/index").UploadVideo
 const UploadTeacher = require("./Routes/index").UploadTeacher
@@ -9,7 +12,13 @@ const UploadTopic = require("./Routes/index").UploadTopic
 const UploadAnnouncement = require("./Routes/index").UploadAnnouncement
 const Passport = require("./Routes/index").Passport
 const Auth = require("./Routes/index").Auth
-const passport = require("passport")
+
+
+// https 憑證設定
+const privateKey  = fs.readFileSync('./ssl/server.key');
+const certificate = fs.readFileSync('./ssl/wildcard.pccu.edu.tw.crt');
+const credentials = { key: privateKey, cert: certificate};
+const httpsServer = https.createServer(credentials ,app);
 
 require("dotenv").config()
 require("./config/passport")(passport)
@@ -36,6 +45,9 @@ app.get("/", (req, res) => {
 
 
 
-app.listen(PORT, () => {
+// app.listen(PORT, () => {
+//     console.log(`It's port ${PORT}`)
+// })
+httpsServer.listen(PORT,()=>{
     console.log(`It's port ${PORT}`)
-})
+} );
