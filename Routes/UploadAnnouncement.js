@@ -3,14 +3,15 @@ const Connection = require("../getMysqlConnection")
 const multer = require("multer")
 const rootPath = require.main.path + '/images'
 const moment = require("moment")
-
+let getImageFilename
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        const file_Name = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + file.originalname;
-        cb(null, file_Name)
+        getImageFilename = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + decodeURI(file.originalname);
+        
+        cb(null, getImageFilename)
     }
 })
 
@@ -19,6 +20,7 @@ let upload = multer({
     storage: storage,
 
     fileFilter: (req, file, cb) => {
+    file.originalname = Buffer.from(file.originalname,"latin1").toString("utf8")
         if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
             cb(null, true);
         } else {
@@ -32,7 +34,8 @@ let upload = multer({
 
 Route.post('/post/announcement', upload.single('upload'), (req, res) => {
 
-    let { category, title, html, poster, smellTitle } = req.body
+    let { category, title, html, poster, smellTitle,expire } = req.body
+    console.log(req.body)
 
     let findSameAnnouncement = `SELECT * FROM Announcement WHERE A_title = '${title}'`
 
@@ -42,10 +45,11 @@ Route.post('/post/announcement', upload.single('upload'), (req, res) => {
         } else {
             if (data.length == 0) {
                 // Windows OS doesn't accept files with a ":"
-                let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
+                // let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
                 
+                let switchExpireType =  moment(expire).format('YYYY-MM-DD HH:mm:ss')
                 let insertAnnouncementToTable = `
-    INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name) VALUES ('${category}','${title}','${smellTitle}','${image}','${html}','${poster}')
+    INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name,expire) VALUES ('${category}','${title}','${smellTitle}','${getImageFilename}','${html}','${poster}','${switchExpireType}')
     `
                 Connection.query(insertAnnouncementToTable, (err, data) => {
                     if (err) {
@@ -65,12 +69,6 @@ Route.post('/post/announcement', upload.single('upload'), (req, res) => {
             }
         }
     })
-
-
-
-
-
-
 })
 
 Route.post("/post/content", upload.single('wangeditor-uploaded-image'), (req, res) => {
@@ -78,7 +76,7 @@ Route.post("/post/content", upload.single('wangeditor-uploaded-image'), (req, re
     console.log({
         "errno": 0, // 注意：值是数字，不能是字符串
         "data": {
-            "url": `http://localhost:3003/api/UploadAnnouncement/image/${fileName}`, // 图片 src ，必须
+            "url": `https://140.137.51.13:5000/${fileName}`, // 图片 src ，必须
             "alt": "yyy", // 图片描述文字，非必须
             "href": "zzz" // 图片的链接，非必须
         }
@@ -86,7 +84,7 @@ Route.post("/post/content", upload.single('wangeditor-uploaded-image'), (req, re
     res.json({
         "errno": 0, // 注意：值是数字，不能是字符串
         "data": {
-            "url": `http://localhost:3003/api/UploadAnnouncement/image/${fileName}`, // 图片 src ，必须
+            "url": `https://140.137.51.13:5000/${fileName}`, // 图片 src ，必须
             "alt": "yyy", // 图片描述文字，非必须
             "href": "zzz" // 图片的链接，非必须
         }
@@ -104,11 +102,28 @@ Route.get('/get/PerAnnouncement', (req, res) => {
     let getAnnouncement = `
     SELECT * FROM Announcement
     `
+    
     Connection.query(getAnnouncement, (err, data) => {
+        let getExpireData = data.filter(item => moment().isAfter(item.expire));
         if (err) {
             console.log(err)
             return
         }
+        if(getExpireData.length !== 0){
+            getExpireData.forEach(item => {
+                let checkExpireAnnouncement = `UPDATE Announcement SET A_category='逾期' WHERE A_id=${item.A_id}`
+                Connection.query(checkExpireAnnouncement,(err,data)=>{
+                    if(err){
+                        console.log(err)
+                        return
+                    }
+                })
+            })
+        }
+       
+
+        console.log(getExpireData)
+       
         res.json({ data })
     })
 })
@@ -124,7 +139,7 @@ Route.post('/get/search/Announcement', (req, res) => {
             console.log(err)
             return
         }
-        console.log(data)
+       
         res.json(data)
     })
 })
@@ -152,8 +167,8 @@ Route.post("/find/Announcement", (req, res) => {
 })
 
 Route.post("/update/Announcement", upload.single('upload'), (req, res) => {
-    let { category, title, html, poster, smellTitle } = req.body
-    let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + req.file.originalname
+    let { category, title, html, poster, smellTitle,expire } = req.body
+    // let image = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + req.file.originalname
     let findSameAnnouncement = `SELECT * FROM Announcement WHERE A_title = '${title}'`
     
     // let UpdateTeacherTable = `
@@ -161,7 +176,7 @@ Route.post("/update/Announcement", upload.single('upload'), (req, res) => {
     // `
 
     let UpdateTeacherTable = `
-    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${image}",A_smellTitle = "${smellTitle}",A_content='${html}',A_createTime = NOW(),M_name="${poster}" WHERE A_title = "${title}"
+    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${getImageFilename}",A_smellTitle = "${smellTitle}",A_content='${html}',A_createTime = NOW(),M_name="${poster}",expire="${expire}" WHERE A_title = "${title}"
     `
 
     Connection.query(findSameAnnouncement, (err, data) => {

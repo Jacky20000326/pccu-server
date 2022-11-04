@@ -2,19 +2,45 @@ const Route = require("express").Router()
 const multer = require("multer")
 const Connection = require("../getMysqlConnection")
 const moment = require("moment")
-
+let getImageFilename
 // 根目錄的路徑
 const rootPath = require.main.path + '/images'
 
+// let storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, rootPath)
+//     },
+//     filename: (req, file, cb) => {
+//         // 取得當下時間並轉換格式
+//         const fileName = String(file.originalname);
+//         cb(null, fileName)
+//     },
+// })
+
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, rootPath)
+        cb(null, rootPath);
     },
     filename: (req, file, cb) => {
-        // 取得當下時間並轉換格式
-        const fileName = String(file.originalname);
-        cb(null, fileName)
-    },
+        getImageFilename = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + decodeURI(file.originalname);
+        
+        cb(null, getImageFilename)
+    }
+})
+
+//驗證檔名
+let upload = multer({
+    storage: storage,
+
+    fileFilter: (req, file, cb) => {
+    file.originalname = Buffer.from(file.originalname,"latin1").toString("utf8")
+        if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
+            cb(null, true);
+        } else {
+            cb(null, false);
+            return cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
+        }
+    }
 })
 
 // var storage = sftpStorage({
@@ -34,17 +60,17 @@ let storage = multer.diskStorage({
 // })
 
 //驗證檔名
-let upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
-            cb(null, true);
-        } else {
-            cb(null, false);
-            return cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
-        }
-    }
-})
+// let upload = multer({
+//     storage: storage,
+//     fileFilter: (req, file, cb) => {
+//         if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
+//             cb(null, true);
+//         } else {
+//             cb(null, false);
+//             return cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
+//         }
+//     }
+// })
 
 // let upload = multer({
 //     storage: storage,
@@ -61,9 +87,8 @@ let upload = multer({
 Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
 
     let { job, name, academic, gmail, phone, research, teach } = req.body
+    console.log(getImageFilename)
     
-    let imageData = String(req.file.originalname) 
-
     // select 出職位為系主任的資料
 
     let selectMasterData = `
@@ -72,7 +97,7 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
     
     let insertTeacherToTable = `
     INSERT INTO teacher (TR_job,TR_image,TR_name,TR_academic,TR_gmail,TR_phone,TR_research,TR_teach) VALUES (
-        '${job}','${imageData}','${name}','${academic}','${gmail}','${phone}','${research}','${teach}'
+        '${job}','${getImageFilename}','${name}','${academic}','${gmail}','${phone}','${research}','${teach}'
     )
     `
 
@@ -100,21 +125,21 @@ Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
 
 })
 
-Route.get('/test',(req,res)=>{
+// Route.get('/test',(req,res)=>{
     
-    let insertTeacherToTable = `
-    SELECT * FROM teacher WHERE TR_job = '系主任'
-    `
-    Connection.query(insertTeacherToTable, (err, data) => {
-        if (err) {
-            res.json({ result: "fail", msg: "上傳失敗" })
-            console.log(err)
-            return
-        }
-        console.log(data)
-        res.json(data)
-    })
-})
+//     let insertTeacherToTable = `
+//     SELECT * FROM teacher WHERE TR_job = '系主任'
+//     `
+//     Connection.query(insertTeacherToTable, (err, data) => {
+//         if (err) {
+//             res.json({ result: "fail", msg: "上傳失敗" })
+//             console.log(err)
+//             return
+//         }
+//         console.log(data)
+//         res.json(data)
+//     })
+// })
 
 
 Route.post("/Search/teacherInfo", (req, res) => {
@@ -150,26 +175,28 @@ Route.get("/get/teacherInfo", (req, res) => {
     })
 })
 
-Route.post("/update/teacherInfo", (req, res) => {
+Route.post("/update/teacherInfo",upload.single('Image_Path'), (req, res) => {
     let { job, name, academic, gmail, phone, research, teach } = req.body
+    console.log(getImageFilename)
     let UpdateTeacherTable = `
-    UPDATE teacher SET TR_name = "${name}",TR_academic = "${academic}",TR_job = "${job}",TR_gmail = "${gmail}",TR_phone ="${phone}",TR_research="${research}",TR_teach="${teach}" WHERE TR_name = "${name}"
+    UPDATE teacher SET TR_name = "${name}",TR_academic = "${academic}",TR_job = "${job}",TR_image = "${getImageFilename}",TR_gmail = "${gmail}",TR_phone ="${phone}",TR_research="${research}",TR_teach="${teach}" WHERE TR_name = "${name}"
     `
 
     Connection.query(UpdateTeacherTable, (err, data) => {
+        console.log(data)
         if (err) {
             console.log(err)
             res.json({ result: "fail", msg: "更新失敗" })
             console.log(data)
             return
         }
-        if (data.changedRows == 0) {
-            res.json({ result: "fail", msg: "無更新資料" })
-            console.log({ result: "fail", msg: "無更新資料" })
-        } else {
+        // if (data.changedRows == 0) {
+        //     res.json({ result: "fail", msg: "無更新資料" })
+        //     console.log({ result: "fail", msg: "無更新資料" })
+        // } else {
             res.json({ result: "success", msg: "資料已更新" })
             console.log({ result: "success", msg: "資料已更新" })
-        }
+        // }
     })
 
 })
