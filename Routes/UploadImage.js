@@ -11,7 +11,7 @@ const moment = require("moment")
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, rootPath);
+        cb(null, "./images");
     },
     filename: (req, file, cb) => {
         const fileName = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + file.originalname;
