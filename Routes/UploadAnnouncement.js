@@ -76,7 +76,7 @@ Route.post("/post/content", upload.single('wangeditor-uploaded-image'), (req, re
     console.log({
         "errno": 0, // 注意：值是数字，不能是字符串
         "data": {
-            "url": `https://140.137.51.13:5000/${fileName}`, // 图片 src ，必须
+            "url": `https://pccu-server.onrender.com/images/${fileName}`, // 图片 src ，必须
             "alt": "yyy", // 图片描述文字，非必须
             "href": "zzz" // 图片的链接，非必须
         }
@@ -84,7 +84,7 @@ Route.post("/post/content", upload.single('wangeditor-uploaded-image'), (req, re
     res.json({
         "errno": 0, // 注意：值是数字，不能是字符串
         "data": {
-            "url": `https://140.137.51.13:5000/${fileName}`, // 图片 src ，必须
+            "url": `https://pccu-server.onrender.com/images/${fileName}`, // 图片 src ，必须
             "alt": "yyy", // 图片描述文字，非必须
             "href": "zzz" // 图片的链接，非必须
         }
