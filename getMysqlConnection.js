@@ -1,10 +1,10 @@
 const mysql = require("mysql")
 
 let connection = mysql.createConnection({
-    host: '1.200.80.150',
+    host: '34.85.88.229',
     user: 'root',
-    password: '8903260326',
-    database: 'pccudev'
+    password: "GzArALz'URI$k1e(",
+    database: 'pccudb'
 });
 
 module.exports = connection
