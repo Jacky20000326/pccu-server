@@ -15,10 +15,10 @@ const Auth = require("./Routes/index").Auth
 
 
 // https 憑證設定
-const privateKey  = fs.readFileSync('./ssl/server.key');
-const certificate = fs.readFileSync('./ssl/wildcard.pccu.edu.tw.crt');
-const credentials = { key: privateKey, cert: certificate};
-const httpsServer = https.createServer(credentials ,app);
+// const privateKey  = fs.readFileSync('./ssl/server.key');
+// const certificate = fs.readFileSync('./ssl/wildcard.pccu.edu.tw.crt');
+// const credentials = { key: privateKey, cert: certificate};
+// const httpsServer = https.createServer(credentials ,app);
 
 require("dotenv").config()
 require("./config/passport")(passport)
@@ -48,6 +48,6 @@ app.get("/", (req, res) => {
 // app.listen(PORT, () => {
 //     console.log(`It's port ${PORT}`)
 // })
-httpsServer.listen(PORT,()=>{
+app.listen(PORT,()=>{
     console.log(`It's port ${PORT}`)
 } );
