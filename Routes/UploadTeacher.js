@@ -2,6 +2,7 @@ const Route = require("express").Router()
 const multer = require("multer")
 const Connection = require("../getMysqlConnection")
 const moment = require("moment")
+const { Storage } = require("@google-cloud/storage")
 let getImageFilename
 // 根目錄的路徑
 const rootPath = require.main.path + '/images'
@@ -16,6 +17,15 @@ const rootPath = require.main.path + '/images'
 //         cb(null, fileName)
 //     },
 // })
+let projectId = 'pccudic-test';
+let keyFilename = 'mykey.json';
+
+const googleStorage = new Storage({
+    projectId,
+    keyFilename
+})
+
+const bucket = googleStorage.bucket('pccustorage')
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -30,7 +40,7 @@ let storage = multer.diskStorage({
 
 //驗證檔名
 let upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
 
     fileFilter: (req, file, cb) => {
     file.originalname = Buffer.from(file.originalname,"latin1").toString("utf8")
@@ -85,6 +95,25 @@ let upload = multer({
 // })
 
 Route.post("/post/teacher", upload.single('Image_Path'), (req, res) => {
+
+     // === google storage === 
+    if(req.file){
+        const blob = bucket.file(req.file.originalname);
+        const blobStream = blob.createWriteStream({
+            metadata: {
+                // contentType: req.file.mimetype,
+                // 將存儲桶中的文件設置為公開
+                // 請注意這僅適用於新上傳的文件，對於已存在的文件，你需要單獨設置公開權限
+                predefinedAcl: 'publicRead'
+            },
+            resumable: false
+        });
+        blobStream.on("finish",()=>{
+            console.log('success')
+        })
+
+        blobStream.end(req.file.buffer)
+    }
 
     let { job, name, academic, gmail, phone, research, teach } = req.body
     console.log(getImageFilename)

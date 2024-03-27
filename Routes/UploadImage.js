@@ -1,8 +1,27 @@
 const Route = require("express").Router()
 const multer = require("multer")
 const Connection = require("../getMysqlConnection")
+const { Storage } = require("@google-cloud/storage")
 // const imageFilePath = require("../../src/images/PathExport")
 const fs = require("fs")
+
+
+
+let projectId = 'pccudic-test';
+let keyFilename = 'mykey.json';
+
+
+const googleStorage = new Storage({
+    projectId,
+    keyFilename
+})
+
+const bucket = googleStorage.bucket('pccustorage')
+
+
+
+
+
 const rootPath = require.main.path + '/images'
 const moment = require("moment")
 
@@ -10,9 +29,10 @@ const moment = require("moment")
 
 
 let storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "./images");
-    },
+    // destination: (req, file, cb) => {
+    //     cb(null, rootPath);
+    // },
+    storage:multer.memoryStorage,
     filename: (req, file, cb) => {
         const fileName = moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') + file.originalname;
         cb(null, fileName)
@@ -21,10 +41,10 @@ let storage = multer.diskStorage({
 
 // 驗證檔名
 let upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
 
     fileFilter: (req, file, cb) => {
-        if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "image/jpeg") {
+        if (file.mimetype == "image/png" || file.mimetype == "image/jpg" || file.mimetype == "blob"|| file.mimetype == "image/jpeg") {
             cb(null, true);
         } else {
             cb(null, false);
@@ -40,7 +60,30 @@ Route.post("/post/image", upload.single('Image_Path'), (req, res) => {
     let insertImageToTable = `
     INSERT INTO image (I_file) VALUES (?)
     `
-    let data =  moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
+
+    // === google storage === 
+    if(req.file){
+        const blob = bucket.file(req.file.originalname);
+        const blobStream = blob.createWriteStream({
+            metadata: {
+                // contentType: req.file.mimetype,
+                // 將存儲桶中的文件設置為公開
+                // 請注意這僅適用於新上傳的文件，對於已存在的文件，你需要單獨設置公開權限
+                predefinedAcl: 'publicRead'
+            },
+            resumable: false
+        });
+        blobStream.on("finish",()=>{
+            console.log('success')
+        })
+
+        blobStream.end(req.file.buffer)
+    }
+
+
+
+    // let data =  moment().format('YYYY-MM-DD-HH-mm-ss').replace(/:/g, '-') +req.file.originalname
+    let data = req.file.originalname
     Connection.query(insertImageToTable, data, (err, data) => {
         if (err) {
             console.log(err)
@@ -48,7 +91,6 @@ Route.post("/post/image", upload.single('Image_Path'), (req, res) => {
         }
         res.send("success upload images")
     })
-    console.log(req.file.path)
 })
 
 // 取得上傳圖片
@@ -66,7 +108,7 @@ Route.get('/getImage', (req, res) => {
 
 Route.post("/delete/uploadImage", (req, res) => {
     let { fileName } = req.body
-    console.log(fileName)
+
     let sql = `DELETE FROM image WHERE I_file = ?`
     let data = fileName
     Connection.query(sql, data, (err, data) => {
@@ -76,9 +118,7 @@ Route.post("/delete/uploadImage", (req, res) => {
         }
         res.json({ msg: "文件刪除成功" })
         console.log({ msg: "文件刪除成功" })
-
         // fs.unlinkSync(`${imageFilePath}/${fileName}`)
-
     })
 
 

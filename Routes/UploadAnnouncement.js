@@ -3,7 +3,23 @@ const Connection = require("../getMysqlConnection")
 const multer = require("multer")
 const rootPath = require.main.path + '/images'
 const moment = require("moment")
+const { Storage } = require("@google-cloud/storage")
 let getImageFilename
+
+let projectId = 'pccudic-test';
+let keyFilename = 'mykey.json';
+
+
+const googleStorage = new Storage({
+    projectId,
+    keyFilename
+})
+
+const bucket = googleStorage.bucket('pccustorage')
+
+
+
+
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, rootPath);
@@ -17,7 +33,7 @@ let storage = multer.diskStorage({
 
 // 驗證檔名
 let upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
 
     fileFilter: (req, file, cb) => {
     file.originalname = Buffer.from(file.originalname,"latin1").toString("utf8")
@@ -35,7 +51,27 @@ let upload = multer({
 Route.post('/post/announcement', upload.single('upload'), (req, res) => {
 
     let { category, title, html, poster, smellTitle,expire } = req.body
-    console.log(req.body)
+    
+
+   // === google storage === 
+    if(req.file){
+        const blob = bucket.file(req.file.originalname);
+        const blobStream = blob.createWriteStream({
+            metadata: {
+                // contentType: req.file.mimetype,
+                // 將存儲桶中的文件設置為公開
+                // 請注意這僅適用於新上傳的文件，對於已存在的文件，你需要單獨設置公開權限
+                predefinedAcl: 'publicRead'
+            },
+            resumable: false
+        });
+        blobStream.on("finish",()=>{
+            console.log('success')
+        })
+
+        blobStream.end(req.file.buffer)
+    }
+
 
     let findSameAnnouncement = `SELECT * FROM Announcement WHERE A_title = '${title}'`
 
@@ -49,7 +85,7 @@ Route.post('/post/announcement', upload.single('upload'), (req, res) => {
                 
                 let switchExpireType =  moment(expire).format('YYYY-MM-DD HH:mm:ss')
                 let insertAnnouncementToTable = `
-    INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name,expire) VALUES ('${category}','${title}','${smellTitle}','${getImageFilename}','${html}','${poster}','${switchExpireType}')
+    INSERT INTO Announcement (A_category,A_title,A_smellTitle,A_img,A_content,M_name,expire) VALUES ('${category}','${title}','${smellTitle}','${req.file.originalname}','${html}','${poster}','${switchExpireType}')
     `
                 Connection.query(insertAnnouncementToTable, (err, data) => {
                     if (err) {
@@ -176,7 +212,7 @@ Route.post("/update/Announcement", upload.single('upload'), (req, res) => {
     // `
 
     let UpdateTeacherTable = `
-    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${getImageFilename}",A_smellTitle = "${smellTitle}",A_content='${html}',A_createTime = NOW(),M_name="${poster}",expire="${expire}" WHERE A_title = "${title}"
+    UPDATE Announcement SET A_category = "${category}",A_title = "${title}",A_img = "${req.file.originalname}",A_smellTitle = "${smellTitle}",A_content='${html}',A_createTime = NOW(),M_name="${poster}",expire="${expire}" WHERE A_title = "${title}"
     `
 
     Connection.query(findSameAnnouncement, (err, data) => {
